@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kingshot Rally Coordinator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:        #0a0c10;
+  --bg2:       #0f1218;
+  --bg3:       #161b24;
+  --border:    #1e2530;
+  --border2:   #2a3340;
+  --gold:      #c8923a;
+  --gold-dim:  #8a601f;
+  --gold-glow: rgba(200,146,58,0.15);
+  --red:       #e84040;
+  --red-dim:   #8a1f1f;
+  --green:     #3dbf7a;
+  --green-dim: #1a5c38;
+  --blue:      #4a8fe8;
+  --text:      #c8cdd8;
+  --text-dim:  #5a6375;
+  --text-muted:#3a4250;
+  --mono:      'Share Tech Mono', monospace;
+  --sans:      'Barlow', sans-serif;
+  --display:   'Rajdhani', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Grid bg */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(200,146,58,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,146,58,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ── LAYOUT ── */
+.app { max-width: 820px; margin: 0 auto; padding: 24px 16px 60px; position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+.header { text-align: center; margin-bottom: 32px; }
+.header-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: var(--gold);
+  border: 1px solid var(--gold-dim);
+  padding: 3px 12px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.header h1 {
+  font-family: var(--display);
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.header h1 span { color: var(--gold); }
+.header-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 300;
+  letter-spacing: .04em;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--gold-dim);
+}
+.card-title {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+/* ── ROOM SETUP ── */
+.room-row { display: flex; gap: 8px; align-items: stretch; }
+.room-input-wrap { flex: 1; position: relative; }
+.room-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 18px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color .2s;
+}
+.room-input:focus { border-color: var(--gold); }
+.room-input::placeholder { color: var(--text-muted); font-size: 14px; letter-spacing: .05em; text-transform: none; }
+
+.btn {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border: 1px solid var(--gold-dim);
+  background: transparent;
+  color: var(--gold);
+  padding: 0 20px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--gold-glow); border-color: var(--gold); }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--gold); color: #000; border-color: var(--gold); font-weight: 700; }
+.btn.primary:hover { background: #d9a348; }
+.btn.danger { border-color: var(--red-dim); color: var(--red); }
+.btn.danger:hover { background: rgba(232,64,64,0.1); border-color: var(--red); }
+.btn.sm { font-size: 11px; padding: 6px 14px; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+.name-row { display: flex; gap: 8px; margin-top: 8px; }
+.name-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color .2s;
+}
+.name-input:focus { border-color: var(--gold); }
+.name-input::placeholder { color: var(--text-muted); }
+
+.room-status {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.room-status .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 6px;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── LEADERS GRID ── */
+.leaders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.leader-slot {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  transition: border-color .2s, box-shadow .2s;
+  min-height: 74px;
+}
+.leader-slot.ready {
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(61,191,122,0.12);
+}
+.leader-slot.me { border-color: var(--gold-dim); }
+.leader-slot.me.ready { border-color: var(--green); }
+
+.leader-avatar {
+  width: 36px; height: 36px;
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  transition: all .2s;
+}
+.leader-slot.ready .leader-avatar {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.leader-info { flex: 1; min-width: 0; }
+.leader-name {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leader-march {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.leader-march span { color: var(--gold); }
+
+.leader-status-icon {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.status-wait { color: var(--text-muted); font-size: 16px; }
+.status-ready { color: var(--green); font-size: 18px; }
+
+.me-tag {
+  position: absolute;
+  top: 5px; right: 5px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: .1em;
+  color: var(--gold);
+  background: var(--gold-glow);
+  padding: 1px 5px;
+}
+
+.empty-slot {
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 74px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+/* ── MY CONTROLS ── */
+.my-controls {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.march-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  padding: 0 14px;
+  flex: 1;
+  min-width: 200px;
+}
+.march-input-wrap label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.march-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 15px;
+  width: 80px;
+  outline: none;
+  text-align: center;
+  padding: 10px 0;
+}
+.march-input::placeholder { color: var(--text-muted); }
+
+.ready-btn {
+  flex: 1;
+  min-width: 160px;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  border: 2px solid var(--gold-dim);
+  background: transparent;
+  color: var(--gold);
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+  overflow: hidden;
+}
+.ready-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold-glow);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .2s;
+}
+.ready-btn:hover::before { transform: scaleX(1); }
+.ready-btn.is-ready {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(61,191,122,0.08);
+}
+.ready-btn.is-ready::before { display: none; }
+
+/* ── LAUNCH SEQUENCE ── */
+#launch-panel { display: none; }
+#launch-panel.visible { display: block; }
+
+.launch-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.launch-icon {
+  width: 48px; height: 48px;
+  border: 2px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  animation: rotate-slow 8s linear infinite;
+}
+@keyframes rotate-slow {
+  from { border-radius: 0; }
+  25% { border-radius: 50%; }
+  75% { border-radius: 50%; }
+  to { border-radius: 0; }
+}
+.launch-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.launch-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+.sequence-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.seq-row {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  transition: border-color .3s, box-shadow .3s;
+}
+.seq-row.launching {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px var(--gold-glow);
+  animation: row-pulse .5s ease;
+}
+.seq-row.done {
+  border-color: var(--green-dim);
+  opacity: 0.6;
+}
+@keyframes row-pulse {
+  0% { box-shadow: 0 0 0 var(--gold-glow); }
+  50% { box-shadow: 0 0 30px rgba(200,146,58,0.4); }
+  100% { box-shadow: 0 0 20px var(--gold-glow); }
+}
+
+.seq-name {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.seq-name .order-badge {
+  width: 20px; height: 20px;
+  background: var(--gold-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.seq-bar-wrap {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.seq-bar-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width .1s linear;
+}
+.seq-row.done .seq-bar-fill { background: var(--green); width: 100% !important; }
+
+.seq-countdown {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--gold);
+  min-width: 60px;
+  text-align: right;
+}
+.seq-countdown.active { color: #fff; }
+.seq-countdown.done-text { color: var(--green); font-size: 14px; }
+.seq-countdown.waiting { color: var(--text-muted); font-size: 12px; }
+
+.castle-timer {
+  margin-top: 20px;
+  background: var(--bg3);
+  border: 1px solid var(--gold-dim);
+  padding: 20px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.castle-timer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center bottom, var(--gold-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.castle-timer-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.castle-timer-value {
+  font-family: var(--mono);
+  font-size: 52px;
+  color: #fff;
+  letter-spacing: .05em;
+  line-height: 1;
+}
+.castle-timer-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.progress-info {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.progress-info strong { color: var(--gold); }
+
+/* ── ALL READY FLASH ── */
+.all-ready-banner {
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  animation: banner-in .3s ease;
+}
+@keyframes banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.banner-icon { font-size: 20px; }
+.banner-text {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.banner-sub { font-size: 12px; color: rgba(61,191,122,0.7); margin-top: 1px; }
+
+/* ── LOG ── */
+.log-area {
+  margin-top: 8px;
+  max-height: 100px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+.log-area .log-entry { }
+.log-area .log-entry.important { color: var(--gold); }
+.log-area .log-entry.success { color: var(--green); }
+
+/* ── SHARE ── */
+.share-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+}
+.share-url {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* ── LOBBY ── */
+#lobby-screen { }
+#session-screen { display: none; }
+
+/* ── UTILS ── */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.text-center { text-align: center; }
+
+/* ── NOTIFICATION TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--bg2);
+  border: 1px solid var(--gold);
+  padding: 10px 24px;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: .08em;
+  color: var(--gold);
+  transition: transform .3s ease;
+  z-index: 9999;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── PRE-LAUNCH COUNTDOWN ── */
+.prelaunch-overlay {
+  display: none;
+  background: var(--bg2);
+  border: 1px solid var(--gold);
+  padding: 28px 24px;
+  margin-bottom: 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: banner-in .3s ease;
+}
+.prelaunch-overlay.visible { display: block; }
+.prelaunch-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(200,146,58,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.prelaunch-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .25em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.prelaunch-number {
+  font-family: var(--display);
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: -.02em;
+  transition: transform .15s ease, color .3s;
+}
+.prelaunch-number.urgent { color: var(--red); transform: scale(1.08); }
+.prelaunch-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  font-weight: 300;
+}
+.prelaunch-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  margin-top: 20px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.prelaunch-bar-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width .9s linear;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <div class="header-badge">&#x2694; Alliance Coordination System</div>
+    <h1>Kingshot <span>Rally</span> Coordinator</h1>
+    <div class="header-sub">Real-time leader sync &amp; staggered launch sequencer</div>
+  </div>
+
+  <!-- LOBBY -->
+  <div id="lobby-screen">
+    <div class="card">
+      <div class="card-title">&#x25A0; Join or Create a Room</div>
+      <div class="room-row">
+        <div class="room-input-wrap">
+          <input class="room-input" id="room-input" type="text" placeholder="Enter room code (e.g. VIPER)" maxlength="12" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn" id="gen-btn" onclick="generateCode()" title="Generate random code">&#x21BA; Gen</button>
+      </div>
+      <div class="name-row">
+        <input class="name-input" id="name-input" type="text" placeholder="Your leader name (e.g. RedDragon)" maxlength="16" autocomplete="off">
+        <button class="btn primary" onclick="joinRoom()">Enter Room</button>
+      </div>
+      <div class="mt-8" style="font-size:12px;color:var(--text-muted);">
+        Share the room code with your rally leaders — everyone joins the same code. Works across devices on the same network or internet.
+      </div>
+    </div>
+    <div class="card" style="--card-accent: var(--text-muted);">
+      <div class="card-title">&#x25A0; How it works</div>
+      <div style="display:grid;gap:10px;">
+        <div style="display:flex;gap:12px;font-size:13px;color:var(--text-dim);">
+          <span style="color:var(--gold);font-family:var(--mono);font-size:11px;margin-top:2px;">01</span>
+          <span>All rally leaders open this page and join the <strong style="color:var(--text)">same room code</strong> with their name and march time.</span>
+        </div>
+        <div style="display:flex;gap:12px;font-size:13px;color:var(--text-dim);">
+          <span style="color:var(--gold);font-family:var(--mono);font-size:11px;margin-top:2px;">02</span>
+          <span>Each leader clicks <strong style="color:var(--text)">READY</strong> when their rally is queued up and troops are set.</span>
+        </div>
+        <div style="display:flex;gap:12px;font-size:13px;color:var(--text-dim);">
+          <span style="color:var(--gold);font-family:var(--mono);font-size:11px;margin-top:2px;">03</span>
+          <span>When all leaders are ready, a <strong style="color:var(--text)">staggered countdown</strong> fires automatically — each leader gets their personal cue based on march time.</span>
+        </div>
+        <div style="display:flex;gap:12px;font-size:13px;color:var(--text-dim);">
+          <span style="color:var(--gold);font-family:var(--mono);font-size:11px;margin-top:2px;">04</span>
+          <span>All rallies arrive at the castle <strong style="color:var(--text)">simultaneously</strong>. No roll call needed.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION -->
+  <div id="session-screen">
+
+    <!-- Room info bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:.1em;">ROOM</div>
+        <div style="font-family:var(--display);font-size:22px;font-weight:700;color:var(--gold);letter-spacing:.15em;" id="room-display"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="room-status"><span class="dot"></span><span id="conn-status">Connected</span></div>
+        <button class="btn sm danger" onclick="leaveRoom()">Leave</button>
+      </div>
+    </div>
+
+    <!-- Share bar -->
+    <div class="share-row" style="margin-bottom:12px;">
+      <span class="share-url" id="share-url-display"></span>
+      <button class="btn sm" onclick="copyShareUrl()">Copy Link</button>
+    </div>
+
+    <!-- All ready banner (hidden until all ready) -->
+    <div id="all-ready-banner" class="all-ready-banner hidden">
+      <span class="banner-icon">&#x26A1;</span>
+      <div>
+        <div class="banner-text">All leaders ready — launch sequence starting!</div>
+        <div class="banner-sub">Stand by for your personal countdown</div>
+      </div>
+    </div>
+
+    <!-- Pre-launch countdown -->
+    <div id="prelaunch-overlay" class="prelaunch-overlay">
+      <div class="prelaunch-label">&#x25B6; Switch to Kingshot — launch sequence begins in</div>
+      <div class="prelaunch-number" id="prelaunch-number">10</div>
+      <div class="prelaunch-sub">All rallies will be cued automatically. Stand by.</div>
+      <div class="prelaunch-bar-wrap">
+        <div class="prelaunch-bar-fill" id="prelaunch-bar" style="width:100%"></div>
+      </div>
+    </div>
+
+    <!-- Leaders -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;">
+        <span>&#x25A0; Rally Leaders</span>
+        <span id="ready-count-label" style="color:var(--text-dim);font-weight:400;letter-spacing:.05em;font-family:var(--sans);font-size:12px;align-self:center;">0 / 0 ready</span>
+      </div>
+      <div class="leaders-grid" id="leaders-grid">
+        <!-- populated dynamically -->
+      </div>
+    </div>
+
+    <!-- My controls -->
+    <div class="card" id="my-controls-card">
+      <div class="card-title">&#x25A0; My Station</div>
+      <div class="my-controls">
+        <div class="march-input-wrap">
+          <label>MARCH TIME</label>
+          <input class="march-input" id="my-march" type="text" placeholder="m:ss" maxlength="5">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">min:sec</span>
+        </div>
+        <button class="ready-btn" id="ready-btn" onclick="toggleReady()">Ready</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;font-family:var(--mono);">
+        Enter your march time, then click READY. You can un-ready to adjust.
+      </div>
+    </div>
+
+    <!-- Launch sequence (shown when all ready) -->
+    <div class="card" id="launch-panel">
+      <div class="launch-header">
+        <div class="launch-icon">&#x2316;</div>
+        <div>
+          <div class="launch-title">Launch Sequence Active</div>
+          <div class="launch-sub" id="launch-sub-text">Calculating stagger offsets…</div>
+        </div>
+      </div>
+      <div class="sequence-grid" id="sequence-grid"></div>
+      <div class="castle-timer" id="castle-timer" style="display:none;">
+        <div class="castle-timer-label">&#x2593; All marches arrive at castle in</div>
+        <div class="castle-timer-value" id="castle-time-display">0:00</div>
+        <div class="castle-timer-sub">Maintain voice contact — stay coordinated</div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn danger sm" onclick="abortSequence()">&#x25FC; Abort &amp; Reset</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title" style="margin-bottom:8px;">&#x25A0; Event Log</div>
+      <div class="log-area" id="log-area"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let myId = null;
+let myName = '';
+let roomCode = '';
+let isReady = false;
+let sequenceActive = false;
+let sequenceTimer = null;
+let castleTimerInterval = null;
+
+// Room state (shared via sync)
+let roomState = {
+  leaders: {}   // { id: { name, marchMs, ready, joinedAt } }
+};
+
+// ============================================================
+// PERSISTENCE (localStorage as real-time sync via storage events)
+// We use localStorage + polling for cross-tab/cross-device sync.
+// For cross-device, we simulate with a lightweight BroadcastChannel
+// fallback to localStorage polling.
+// ============================================================
+const POLL_MS = 500;
+let pollTimer = null;
+let bc = null;  // BroadcastChannel if available
+
+function getStorageKey(room) { return 'ks_rally_' + room.toUpperCase(); }
+
+function saveRoomState() {
+  if (!roomCode) return;
+  const key = getStorageKey(roomCode);
+  const payload = JSON.stringify(roomState);
+  try {
+    localStorage.setItem(key, payload);
+  } catch(e) {}
+  // Broadcast to other tabs
+  if (bc) {
+    try { bc.postMessage({ type: 'state', room: roomCode, state: roomState }); } catch(e) {}
+  }
+}
+
+function loadRoomState() {
+  if (!roomCode) return;
+  const key = getStorageKey(roomCode);
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.leaders) {
+        roomState = parsed;
+        renderAll();
+      }
+    }
+  } catch(e) {}
+}
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    const prev = JSON.stringify(roomState);
+    loadRoomState();
+    const curr = JSON.stringify(roomState);
+    if (prev !== curr) renderAll();
+  }, POLL_MS);
+}
+
+function stopPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function generateCode() {
+  const words = ['VIPER','COBRA','EAGLE','STORM','BLAZE','TITAN','ATLAS','NEXUS','ALPHA','OMEGA','RAVEN','GHOST','NOVA','STEEL','IRON','WOLF'];
+  const w = words[Math.floor(Math.random()*words.length)];
+  const n = Math.floor(Math.random()*99)+1;
+  document.getElementById('room-input').value = w + n;
+}
+
+function parseMarch(str) {
+  // Accept "3:45" or "3.45" or "225" (seconds) or "3m45s"
+  if (!str) return null;
+  str = str.trim();
+  const colonMatch = str.match(/^(\d+):(\d{1,2})$/);
+  if (colonMatch) {
+    return (parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2])) * 1000;
+  }
+  const dotMatch = str.match(/^(\d+)\.(\d{1,2})$/);
+  if (dotMatch) {
+    return (parseInt(dotMatch[1]) * 60 + parseInt(dotMatch[2])) * 1000;
+  }
+  const numMatch = str.match(/^(\d+)$/);
+  if (numMatch) {
+    const n = parseInt(numMatch[1]);
+    return n * 1000; // treat as seconds
+  }
+  return null;
+}
+
+function formatMs(ms) {
+  if (ms <= 0) return '0:00';
+  const totalSec = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function formatMarch(ms) {
+  const totalSec = Math.round(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function log(msg, type='') {
+  const area = document.getElementById('log-area');
+  const el = document.createElement('div');
+  el.className = 'log-entry' + (type ? ' ' + type : '');
+  const time = new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.textContent = `[${time}] ${msg}`;
+  area.prepend(el);
+  // keep max 30 entries
+  while (area.children.length > 30) area.removeChild(area.lastChild);
+}
+
+function copyShareUrl() {
+  const url = document.getElementById('share-url-display').textContent;
+  navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {
+    prompt('Copy this link:', url);
+  });
+}
+
+// ============================================================
+// ROOM JOIN / LEAVE
+// ============================================================
+function joinRoom() {
+  const code = document.getElementById('room-input').value.trim().toUpperCase();
+  const name = document.getElementById('name-input').value.trim() || 'Leader';
+  if (!code) { showToast('Enter a room code first'); return; }
+
+  roomCode = code;
+  myName = name;
+  myId = uid();
+
+  // Setup BroadcastChannel if supported
+  try {
+    bc = new BroadcastChannel('ks_rally_' + roomCode);
+    bc.onmessage = (e) => {
+      if (e.data && e.data.type === 'state' && e.data.room === roomCode) {
+        const incoming = e.data.state;
+        roomState = incoming;
+        renderAll();
+      }
+    };
+  } catch(e) { bc = null; }
+
+  // Load existing state
+  loadRoomState();
+
+  // Add myself
+  roomState.leaders[myId] = {
+    name: myName,
+    marchMs: null,
+    ready: false,
+    joinedAt: Date.now()
+  };
+  saveRoomState();
+  startPolling();
+
+  // Show session
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('session-screen').style.display = 'block';
+  document.getElementById('room-display').textContent = roomCode;
+
+  // Share URL with room code embedded
+  const shareUrl = window.location.href.split('?')[0] + '?room=' + encodeURIComponent(roomCode);
+  document.getElementById('share-url-display').textContent = shareUrl;
+
+  log(`Joined room ${roomCode} as ${myName}`, 'important');
+  renderAll();
+
+  // Handle page unload
+  window.addEventListener('beforeunload', leaveRoom);
+}
+
+function leaveRoom() {
+  if (!roomCode || !myId) return;
+  delete roomState.leaders[myId];
+  saveRoomState();
+  stopPolling();
+  abortSequence();
+  if (bc) { bc.close(); bc = null; }
+  roomCode = ''; myId = ''; isReady = false;
+  document.getElementById('lobby-screen').style.display = '';
+  document.getElementById('session-screen').style.display = 'none';
+  document.getElementById('launch-panel').style.display = 'none';
+  document.getElementById('launch-panel').classList.remove('visible');
+  window.removeEventListener('beforeunload', leaveRoom);
+}
+
+// ============================================================
+// READY TOGGLE
+// ============================================================
+function toggleReady() {
+  if (!myId || sequenceActive) return;
+
+  const marchStr = document.getElementById('my-march').value;
+  const marchMs = parseMarch(marchStr);
+
+  if (!isReady && !marchMs) {
+    showToast('Enter your march time first (e.g. 3:45)');
+    document.getElementById('my-march').focus();
+    return;
+  }
+
+  isReady = !isReady;
+  roomState.leaders[myId].ready = isReady;
+  roomState.leaders[myId].marchMs = marchMs;
+  saveRoomState();
+
+  const btn = document.getElementById('ready-btn');
+  btn.textContent = isReady ? '✓ Ready' : 'Ready';
+  btn.classList.toggle('is-ready', isReady);
+
+  log(isReady ? `${myName} is READY (march: ${formatMarch(marchMs)})` : `${myName} un-readied`, isReady ? 'important' : '');
+  renderAll();
+  checkAllReady();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderAll() {
+  renderLeaders();
+  updateReadyCount();
+  if (!sequenceActive) checkAllReady();
+}
+
+function renderLeaders() {
+  const grid = document.getElementById('leaders-grid');
+  const leaders = Object.entries(roomState.leaders).sort((a,b) => a[1].joinedAt - b[1].joinedAt);
+
+  grid.innerHTML = '';
+
+  leaders.forEach(([id, leader]) => {
+    const isMe = id === myId;
+    const slot = document.createElement('div');
+    slot.className = 'leader-slot' + (leader.ready ? ' ready' : '') + (isMe ? ' me' : '');
+
+    const initials = leader.name.slice(0,2).toUpperCase();
+    const marchDisp = leader.marchMs ? formatMarch(leader.marchMs) : '—';
+
+    slot.innerHTML = `
+      ${isMe ? '<div class="me-tag">YOU</div>' : ''}
+      <div class="leader-avatar">${initials}</div>
+      <div class="leader-info">
+        <div class="leader-name">${escHtml(leader.name)}</div>
+        <div class="leader-march">March: <span>${marchDisp}</span></div>
+      </div>
+      <div class="leader-status-icon">
+        ${leader.ready
+          ? '<span class="status-ready">✓</span>'
+          : '<span class="status-wait">◌</span>'}
+      </div>
+    `;
+    grid.appendChild(slot);
+  });
+
+  // empty slot hint
+  if (leaders.length < 5) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-slot';
+    empty.textContent = '+ awaiting leader';
+    grid.appendChild(empty);
+  }
+}
+
+function updateReadyCount() {
+  const leaders = Object.values(roomState.leaders);
+  const total = leaders.length;
+  const ready = leaders.filter(l => l.ready).length;
+  document.getElementById('ready-count-label').textContent = `${ready} / ${total} ready`;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================
+// ALL READY CHECK + PRE-LAUNCH COUNTDOWN
+// ============================================================
+let allReadyAcked = false;
+let prelaunchTimer = null;
+let prelaunchRaf = null;
+const PRELAUNCH_SECS = 10;
+
+function checkAllReady() {
+  if (sequenceActive) return;
+  const leaders = Object.values(roomState.leaders);
+  if (leaders.length < 1) return;
+
+  const allReady = leaders.length >= 1 && leaders.every(l => l.ready && l.marchMs);
+
+  const banner = document.getElementById('all-ready-banner');
+  if (allReady) {
+    if (!allReadyAcked) {
+      allReadyAcked = true;
+      banner.classList.remove('hidden');
+      log('ALL LEADERS READY — starting pre-launch countdown', 'success');
+      startPrelaunchCountdown();
+    }
+  } else {
+    // Someone un-readied — cancel pre-launch if running
+    if (allReadyAcked) {
+      cancelPrelaunchCountdown();
+    }
+    allReadyAcked = false;
+    banner.classList.add('hidden');
+  }
+}
+
+function startPrelaunchCountdown() {
+  const overlay = document.getElementById('prelaunch-overlay');
+  const numEl   = document.getElementById('prelaunch-number');
+  const barEl   = document.getElementById('prelaunch-bar');
+
+  overlay.classList.add('visible');
+  numEl.classList.remove('urgent');
+
+  const endTime = Date.now() + PRELAUNCH_SECS * 1000;
+
+  function tick() {
+    const remaining = Math.ceil((endTime - Date.now()) / 1000);
+    const pct = ((endTime - Date.now()) / (PRELAUNCH_SECS * 1000)) * 100;
+
+    numEl.textContent = Math.max(0, remaining);
+    barEl.style.width = Math.max(0, pct) + '%';
+    numEl.classList.toggle('urgent', remaining <= 3);
+
+    if (remaining > 0) {
+      prelaunchRaf = requestAnimationFrame(tick);
+    } else {
+      // Countdown done — hide overlay and fire sequence
+      overlay.classList.remove('visible');
+      numEl.classList.remove('urgent');
+      log('Pre-launch countdown complete — launch sequence initiated', 'success');
+      startLaunchSequence();
+    }
+  }
+
+  prelaunchRaf = requestAnimationFrame(tick);
+}
+
+function cancelPrelaunchCountdown() {
+  if (prelaunchRaf) {
+    cancelAnimationFrame(prelaunchRaf);
+    prelaunchRaf = null;
+  }
+  const overlay = document.getElementById('prelaunch-overlay');
+  if (overlay) overlay.classList.remove('visible');
+  log('Pre-launch countdown cancelled — a leader un-readied', 'important');
+}
+
+// ============================================================
+// LAUNCH SEQUENCE
+// ============================================================
+function startLaunchSequence() {
+  if (sequenceActive) return;
+  sequenceActive = true;
+
+  // Sort leaders by march time DESC (longest first = launches first)
+  const leaders = Object.entries(roomState.leaders)
+    .filter(([,l]) => l.marchMs)
+    .sort((a,b) => b[1].marchMs - a[1].marchMs);
+
+  if (leaders.length === 0) return;
+
+  const baseMarchMs = leaders[0][1].marchMs;  // longest march time
+  const arrivalTime = Date.now() + baseMarchMs; // when all should arrive
+
+  // Each leader's launch time = arrivalTime - their marchMs
+  const sequence = leaders.map(([id, leader], idx) => ({
+    id,
+    name: leader.name,
+    marchMs: leader.marchMs,
+    isMe: id === myId,
+    launchAt: arrivalTime - leader.marchMs,  // absolute timestamp
+    delay: baseMarchMs - leader.marchMs,     // ms after base launches
+    order: idx + 1
+  }));
+
+  // Show launch panel
+  const panel = document.getElementById('launch-panel');
+  panel.style.display = 'block';
+  panel.classList.add('visible');
+
+  document.getElementById('launch-sub-text').textContent =
+    `Base march: ${formatMarch(baseMarchMs)} — ${sequence.length} rally${sequence.length>1?'s':''} will hit simultaneously`;
+
+  // Build sequence rows
+  const grid = document.getElementById('sequence-grid');
+  grid.innerHTML = '';
+
+  sequence.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'seq-row';
+    row.id = 'seq-row-' + s.id;
+
+    const delayText = s.delay === 0 ? 'Launches first' : `Wait ${formatMarch(s.delay)}`;
+
+    row.innerHTML = `
+      <div class="seq-name">
+        <div class="order-badge">${s.order}</div>
+        ${escHtml(s.name)}${s.isMe ? ' <span style="font-size:10px;color:var(--gold);margin-left:4px;">◀ YOU</span>' : ''}
+      </div>
+      <div class="seq-bar-wrap"><div class="seq-bar-fill" id="bar-${s.id}" style="width:0%"></div></div>
+      <div class="seq-countdown waiting" id="cd-${s.id}">${delayText}</div>
+    `;
+    grid.appendChild(row);
+  });
+
+  log('Launch sequence started', 'success');
+
+  // Run the countdown loop
+  const startedAt = Date.now();
+
+  function tick() {
+    const now = Date.now();
+    let allDone = true;
+
+    sequence.forEach(s => {
+      const timeUntilLaunch = s.launchAt - now;
+      const row = document.getElementById('seq-row-' + s.id);
+      const cd = document.getElementById('cd-' + s.id);
+      const bar = document.getElementById('bar-' + s.id);
+
+      if (timeUntilLaunch > 0) {
+        allDone = false;
+        // Countdown phase: waiting to launch
+        const totalWait = s.delay;
+        const waited = totalWait - timeUntilLaunch;
+        const pct = totalWait > 0 ? Math.max(0, Math.min(100, (waited / totalWait) * 100)) : 100;
+
+        cd.textContent = formatMs(timeUntilLaunch);
+        cd.className = 'seq-countdown' + (timeUntilLaunch < 5000 ? ' active' : ' waiting');
+        bar.style.width = pct + '%';
+
+        // Pulse row when about to launch
+        if (timeUntilLaunch < 3000 && !row.classList.contains('launching')) {
+          row.classList.add('launching');
+          if (s.isMe) {
+            showToast('▶ LAUNCH YOUR RALLY NOW!', 4000);
+            log(`>>> ${s.name}: LAUNCH NOW <<<`, 'success');
+          } else {
+            log(`>>> ${s.name}: launching now`, '');
+          }
+        }
+      } else {
+        // Launched
+        if (!row.classList.contains('done')) {
+          row.classList.remove('launching');
+          row.classList.add('done');
+          cd.className = 'seq-countdown done-text';
+          cd.textContent = 'LAUNCHED ✓';
+          bar.style.width = '100%';
+        }
+      }
+    });
+
+    // Show castle arrival timer
+    const timeUntilCastle = arrivalTime - now;
+    if (timeUntilCastle > -5000) {
+      const castleDisplay = document.getElementById('castle-time-display');
+      const castlePanel = document.getElementById('castle-timer');
+      castlePanel.style.display = 'block';
+      if (timeUntilCastle > 0) {
+        castleDisplay.textContent = formatMs(timeUntilCastle);
+        allDone = false;
+      } else {
+        castleDisplay.textContent = 'IMPACT';
+        castleDisplay.style.color = 'var(--red)';
+        log('All rallies arriving at the castle NOW!', 'success');
+      }
+    }
+
+    if (!allDone || timeUntilCastle > 0) {
+      sequenceTimer = requestAnimationFrame(tick);
+    } else {
+      sequenceActive = false;
+      log('Sequence complete. Good luck!', 'success');
+    }
+  }
+
+  sequenceTimer = requestAnimationFrame(tick);
+}
+
+function abortSequence() {
+  if (sequenceTimer) {
+    cancelAnimationFrame(sequenceTimer);
+    sequenceTimer = null;
+  }
+  if (castleTimerInterval) {
+    clearInterval(castleTimerInterval);
+    castleTimerInterval = null;
+  }
+  cancelPrelaunchCountdown();
+  sequenceActive = false;
+  allReadyAcked = false;
+
+  // Reset all ready states
+  if (myId && roomState.leaders[myId]) {
+    Object.keys(roomState.leaders).forEach(id => {
+      roomState.leaders[id].ready = false;
+    });
+    saveRoomState();
+  }
+
+  isReady = false;
+  const btn = document.getElementById('ready-btn');
+  if (btn) {
+    btn.textContent = 'Ready';
+    btn.classList.remove('is-ready');
+  }
+
+  document.getElementById('launch-panel').style.display = 'none';
+  document.getElementById('launch-panel').classList.remove('visible');
+  document.getElementById('all-ready-banner').classList.add('hidden');
+  document.getElementById('castle-timer').style.display = 'none';
+
+  const cd = document.getElementById('castle-time-display');
+  if (cd) { cd.textContent = '0:00'; cd.style.color = ''; }
+
+  log('Sequence aborted — all leaders reset to NOT READY', 'important');
+  renderAll();
+}
+
+// ============================================================
+// URL PARAMS — auto-fill room code
+// ============================================================
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get('room');
+  if (room) {
+    document.getElementById('room-input').value = room.toUpperCase();
+  }
+  // Pre-generate a code if nothing set
+  if (!room) generateCode();
+})();
+
+// Also keep march input synced live for my leader slot
+document.addEventListener('DOMContentLoaded', () => {
+  const mi = document.getElementById('my-march');
+  if (mi) {
+    mi.addEventListener('input', () => {
+      if (isReady && myId && roomState.leaders[myId]) {
+        const ms = parseMarch(mi.value);
+        if (ms) {
+          roomState.leaders[myId].marchMs = ms;
+          saveRoomState();
+          renderAll();
+        }
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>
