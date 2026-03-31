@@ -273,17 +273,26 @@ body::after {
 .status-launched { color: var(--green); font-size: 11px; font-family: var(--mono); letter-spacing: .05em; }
 
 /* progress bar — hidden until sequence */
-.leader-progress { display: none; align-items: center; gap: 10px; }
+.leader-progress { display: none; align-items: center; gap: 12px; margin-top: 2px; }
 .leader-progress.visible { display: flex; }
-.lp-bar-wrap { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.lp-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .1s linear; }
+.lp-bar-wrap {
+  flex: 1; height: 6px; background: var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.lp-bar-fill {
+  height: 100%; background: var(--gold);
+  border-radius: 3px; transition: width .1s linear;
+  width: 100%;
+}
+.leader-row.launching .lp-bar-fill { background: var(--red); }
 .leader-row.launched .lp-bar-fill { background: var(--green); width: 100% !important; }
 .lp-countdown {
-  font-family: var(--mono); font-size: 16px;
-  color: var(--text-dim); min-width: 48px; text-align: right;
+  font-family: var(--mono); font-size: 18px; font-weight: 400;
+  color: var(--gold); min-width: 52px; text-align: right;
+  transition: color .2s;
 }
-.lp-countdown.active { color: #fff; }
-.lp-countdown.done { color: var(--green); font-size: 11px; letter-spacing: .05em; }
+.lp-countdown.urgent { color: var(--red); }
+.lp-countdown.done { color: var(--green); font-size: 11px; letter-spacing: .06em; min-width: 52px; }
 
 .empty-slot {
   background: var(--bg);
@@ -665,8 +674,7 @@ body::after {
   pointer-events: none;
 }
 .countdown-strip.visible { display: flex; }
-.countdown-strip.arrival { border-color: var(--red); }
-.countdown-strip.arrival::before { background: radial-gradient(ellipse at center, rgba(232,64,64,0.06) 0%, transparent 70%); }
+.cs-number.urgent { color: var(--red); }
 .cs-number {
   font-family: var(--display);
   font-size: 36px;
@@ -679,8 +687,6 @@ body::after {
   transition: color .3s;
 }
 .cs-number.urgent { color: var(--red); }
-.cs-number.arrival-mode { color: var(--gold); font-size: 32px; font-family: var(--mono); }
-.cs-number.impact { color: var(--red); font-size: 22px; letter-spacing: .05em; }
 .cs-body { flex: 1; min-width: 0; }
 .cs-label {
   font-family: var(--mono);
@@ -690,10 +696,8 @@ body::after {
   text-transform: uppercase;
   margin-bottom: 4px;
 }
-.countdown-strip.arrival .cs-label { color: var(--red); }
 .cs-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .cs-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .1s linear; }
-.countdown-strip.arrival .cs-bar-fill { background: var(--red); }
 
 /* scrollbar */
 ::-webkit-scrollbar { width: 4px; }
@@ -1203,8 +1207,7 @@ function startLaunchSequence() {
   if (leaders.length === 0) return;
 
   const baseMarchMs = leaders[0][1].marchMs;
-  const RALLY_FILL_MS = 5 * 60 * 1000; // 5 min for rally to fill before marching
-  const arrivalTime = Date.now() + RALLY_FILL_MS + baseMarchMs;
+  const arrivalTime = Date.now() + baseMarchMs;
 
   const sequence = leaders.map(([id, leader], idx) => ({
     id,
@@ -1220,12 +1223,16 @@ function startLaunchSequence() {
   const abortBtn = document.getElementById('abort-btn');
   if (abortBtn) abortBtn.style.display = '';
 
+  const sequenceStartTime = Date.now();
+
   // Show progress bars on all rows
   sequence.forEach(s => {
     const lp = document.getElementById('lp-' + s.id);
     if (lp) lp.classList.add('visible');
+    const bar = document.getElementById('lpbar-' + s.id);
+    if (bar) bar.style.width = '100%';
     const cd = document.getElementById('lpcd-' + s.id);
-    if (cd) cd.textContent = s.delay === 0 ? 'FIRST' : formatMs(s.delay);
+    if (cd) { cd.textContent = formatMs(s.launchAt - Date.now()); cd.className = 'lp-countdown'; }
   });
 
   log('Launch sequence started', 'success');
@@ -1236,18 +1243,20 @@ function startLaunchSequence() {
 
     sequence.forEach(s => {
       const timeUntilLaunch = s.launchAt - now;
-      const row  = document.getElementById('lrow-' + s.id);
-      const cd   = document.getElementById('lpcd-' + s.id);
-      const bar  = document.getElementById('lpbar-' + s.id);
+      const row = document.getElementById('lrow-' + s.id);
+      const cd  = document.getElementById('lpcd-' + s.id);
+      const bar = document.getElementById('lpbar-' + s.id);
       if (!row || !cd || !bar) return;
 
       if (timeUntilLaunch > 0) {
         allDone = false;
-        const totalWait = s.delay;
-        const pct = totalWait > 0 ? Math.max(0, Math.min(100, ((totalWait - timeUntilLaunch) / totalWait) * 100)) : 100;
+        // Bar drains 100%→0% over the full window from sequence start to this leader's launch
+        const totalWindow = s.launchAt - sequenceStartTime;
+        const elapsed = now - sequenceStartTime;
+        const pct = totalWindow > 0 ? Math.max(0, Math.min(100, (1 - elapsed / totalWindow) * 100)) : 0;
         bar.style.width = pct + '%';
         cd.textContent = formatMs(timeUntilLaunch);
-        cd.className = 'lp-countdown' + (timeUntilLaunch < 5000 ? ' active' : '');
+        cd.className = 'lp-countdown' + (timeUntilLaunch < 10000 ? ' urgent' : '');
 
         if (timeUntilLaunch < 3000 && !row.classList.contains('launching')) {
           row.classList.add('launching');
@@ -1271,31 +1280,7 @@ function startLaunchSequence() {
       }
     });
 
-    // Castle arrival timer — drive the same strip
-    const timeUntilCastle = arrivalTime - now;
-    const strip = document.getElementById('countdown-strip');
-    const csNum = document.getElementById('cs-number');
-    const csBar = document.getElementById('cs-bar');
-    const csLbl = document.getElementById('cs-label');
-
-    if (timeUntilCastle > -5000) {
-      strip.classList.add('visible', 'arrival');
-      if (timeUntilCastle > 0) {
-        csNum.className = 'cs-number arrival-mode';
-        csNum.textContent = formatMs(timeUntilCastle);
-        csBar.style.width = Math.max(0, (timeUntilCastle / (RALLY_FILL_MS + baseMarchMs)) * 100) + '%';
-        csLbl.textContent = 'All marches arrive at castle in';
-        allDone = false;
-      } else {
-        csNum.className = 'cs-number impact';
-        csNum.textContent = 'IMPACT';
-        csBar.style.width = '0%';
-        csLbl.textContent = 'All rallies arriving at the castle NOW!';
-        log('All rallies arriving at the castle NOW!', 'success');
-      }
-    }
-
-    if (!allDone || timeUntilCastle > 0) {
+    if (!allDone) {
       sequenceTimer = requestAnimationFrame(tick);
     } else {
       sequenceActive = false;
@@ -1308,7 +1293,6 @@ function startLaunchSequence() {
         if (btn) { btn.textContent = 'Ready'; btn.classList.remove('is-ready'); }
         const abortBtn = document.getElementById('abort-btn');
         if (abortBtn) abortBtn.style.display = 'none';
-        document.getElementById('all-ready-banner') && document.getElementById('all-ready-banner').classList.add('hidden');
         const strip = document.getElementById('countdown-strip');
         if (strip) strip.classList.remove('visible', 'arrival');
         allReadyAcked = false;
