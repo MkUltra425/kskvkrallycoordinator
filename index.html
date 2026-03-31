@@ -1078,7 +1078,12 @@ function renderAll() {
 function renderLeaders() {
   if (sequenceActive) return; // don't clobber live sequence rows
   const grid = document.getElementById('leaders-grid');
-  const leaders = Object.entries(roomState.leaders).sort((a,b) => a[1].joinedAt - b[1].joinedAt);
+  const leaders = Object.entries(roomState.leaders).sort((a, b) => {
+    const aMarch = a[1].marchMs || 0;
+    const bMarch = b[1].marchMs || 0;
+    if (bMarch !== aMarch) return bMarch - aMarch; // longest march first
+    return a[1].joinedAt - b[1].joinedAt;          // fallback: join order
+  });
 
   grid.innerHTML = '';
 
@@ -1207,7 +1212,8 @@ function startLaunchSequence() {
   if (leaders.length === 0) return;
 
   const baseMarchMs = leaders[0][1].marchMs;
-  const arrivalTime = Date.now() + baseMarchMs;
+  // Add PRELAUNCH_SECS so the BASE player's bar/countdown starts at exactly 5s
+  const arrivalTime = Date.now() + (PRELAUNCH_SECS * 1000) + baseMarchMs;
 
   const sequence = leaders.map(([id, leader], idx) => ({
     id,
