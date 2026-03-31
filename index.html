@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1298,7 +1299,7 @@ function startLaunchSequence() {
     if (pending.length > 0) {
       const nextId = pending.reduce((a, b) => (a.launchAt < b.launchAt ? a : b)).id;
       const nextRow = document.getElementById('lrow-' + nextId);
-      if (nextRow && !nextRow.classList.contains('launching') && !nextRow.classList.contains('launched')) {
+      if (nextRow && !nextRow.classList.contains('launched')) {
         nextRow.classList.add('next-up');
       }
     }
