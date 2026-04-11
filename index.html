@@ -1049,6 +1049,13 @@ body::after {
       </div>
     </div>
 
+    <!-- Big pre-launch countdown -->
+    <div id="big-countdown" style="display:none;text-align:center;padding:20px 0 12px;animation:banner-in .3s ease;">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">&#x25B6; Switch to Kingshot — first launch in</div>
+      <div id="big-countdown-number" style="font-family:var(--display);font-size:120px;font-weight:700;line-height:1;color:#fff;letter-spacing:-.02em;transition:color .2s;">10</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:4px;">All rally cues will fire automatically</div>
+    </div>
+
     <!-- Unified leaders + launch -->
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
@@ -1117,30 +1124,43 @@ let firebaseListener = null;
 let pollTimer = null; // kept for fallback reference, unused when Firebase active
 
 function initFirebase() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (firebaseDb) { resolve(); return; }
-    // Dynamically load Firebase SDK
-    const s1 = document.createElement('script');
-    s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
-    s1.onload = () => {
-      const s2 = document.createElement('script');
-      s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
-      s2.onload = () => {
+
+    function loadScript(src) {
+      return new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = res;
+        s.onerror = () => rej(new Error('Failed to load ' + src));
+        document.head.appendChild(s);
+      });
+    }
+
+    loadScript('https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js')
+      .then(() => loadScript('https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js'))
+      .then(() => {
         firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
         firebaseDb = firebase.database();
         resolve();
-      };
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s1);
+      })
+      .catch(reject);
   });
 }
 
 function getDbKey(room) { return 'rooms/' + room.toUpperCase(); }
 
 function saveRoomState() {
-  if (!roomCode || !firebaseDb) return;
-  firebaseDb.ref(getDbKey(roomCode)).set(roomState).catch(e => console.error('Firebase write error:', e));
+  if (!roomCode || !firebaseDb || !myId) return;
+  // Write only my own leader entry to avoid overwriting other players
+  if (roomState.leaders[myId]) {
+    firebaseDb.ref(getDbKey(roomCode) + '/leaders/' + myId).set(roomState.leaders[myId]).catch(e => console.error('Firebase write error:', e));
+  }
+  // Write shared room fields
+  const shared = { mode: roomState.mode };
+  if (roomState.hitTime !== undefined) shared.hitTime = roomState.hitTime;
+  if (roomState.enemyMarchMs !== undefined) shared.enemyMarchMs = roomState.enemyMarchMs;
+  firebaseDb.ref(getDbKey(roomCode)).update(shared).catch(e => console.error('Firebase write error:', e));
 }
 
 function startFirebaseListener() {
@@ -1152,7 +1172,13 @@ function startFirebaseListener() {
 
     const prevHitTime = roomState.hitTime;
     const prevMode = roomState.mode;
+
+    // Preserve my own entry in case Firebase snapshot arrives before my write completes
+    const myEntry = roomState.leaders[myId];
     roomState = data;
+    if (myId && myEntry && !roomState.leaders[myId]) {
+      roomState.leaders[myId] = myEntry;
+    }
 
     // Sync room mode if it changed
     if (roomState.mode && roomState.mode !== roomMode) {
@@ -1292,32 +1318,31 @@ function joinRoom() {
   document.getElementById('conn-status').textContent = 'Connecting…';
 
   initFirebase().then(() => {
-    // Read existing room state first to get the mode
-    firebaseDb.ref(getDbKey(roomCode)).once('value').then(snapshot => {
-      const existing = snapshot.val();
-      if (existing && existing.leaders) {
-        roomState = existing;
-      }
-      if (!roomState.mode) roomState.mode = lobbyMode;
-      roomMode = roomState.mode;
+    // Set mode from lobby choice (listener will sync if room already exists)
+    if (!roomState.mode) roomState.mode = lobbyMode;
+    roomMode = lobbyMode;
 
-      // Add myself
-      roomState.leaders[myId] = {
-        name: myName,
-        marchMs: null,
-        ready: false,
-        joinedAt: Date.now(),
-        team: myTeam
-      };
+    // Add myself and write immediately — no waiting on a read first
+    roomState.leaders[myId] = {
+      name: myName,
+      marchMs: null,
+      ready: false,
+      joinedAt: Date.now(),
+      team: myTeam
+    };
 
-      saveRoomState();
-      startFirebaseListener();
-      applyModeUI(roomMode);
-      document.getElementById('conn-status').textContent = 'Connected';
-      log(`Joined room ${roomCode} as ${myName}${roomMode === 'counter' ? ' [Team ' + myTeam + ']' : ''}`, 'important');
-      renderAll();
-      renderCounterUI();
-    });
+    // Start listening first so we pick up any existing room state
+    startFirebaseListener();
+
+    // Then write our entry (merge approach — only write our leader node)
+    firebaseDb.ref(getDbKey(roomCode) + '/leaders/' + myId).set(roomState.leaders[myId]);
+    firebaseDb.ref(getDbKey(roomCode) + '/mode').set(roomMode);
+
+    applyModeUI(roomMode);
+    document.getElementById('conn-status').textContent = 'Connected';
+    log(`Joined room ${roomCode} as ${myName}${roomMode === 'counter' ? ' [Team ' + myTeam + ']' : ''}`, 'important');
+    renderAll();
+    renderCounterUI();
   }).catch(err => {
     document.getElementById('conn-status').textContent = 'Connection error';
     log('Firebase connection failed: ' + err.message, 'important');
@@ -1566,6 +1591,10 @@ function startCounterSequence() {
 // ============================================================
 function toggleReady() {
   if (!myId || sequenceActive) return;
+  if (!roomState.leaders[myId]) {
+    showToast('Still connecting — please wait a moment');
+    return;
+  }
 
   // In counter mode, only Team B marks ready; Team A doesn't need to
   const marchInput = roomMode === 'counter'
@@ -1700,7 +1729,7 @@ function escHtml(str) {
 let allReadyAcked = false;
 let prelaunchTimer = null;
 let prelaunchRaf = null;
-const PRELAUNCH_SECS = 5;
+const PRELAUNCH_SECS = 10;
 
 function checkAllReady() {
   if (sequenceActive) return;
@@ -1724,17 +1753,69 @@ function checkAllReady() {
 }
 
 function startPrelaunchCountdown() {
-  // Hide the strip — leader rows handle everything now
-  const strip = document.getElementById('countdown-strip');
-  if (strip) strip.classList.remove('visible');
   log('All leaders ready — starting launch sequence', 'success');
-  startLaunchSequence();
+
+  // Show big countdown
+  const bigCd = document.getElementById('big-countdown');
+  const bigNum = document.getElementById('big-countdown-number');
+  if (bigCd) bigCd.style.display = 'block';
+
+  // Find the BASE leader (longest march time) and show their row countdown now
+  const leaders = Object.entries(roomState.leaders)
+    .filter(([,l]) => l.marchMs)
+    .sort((a,b) => b[1].marchMs - a[1].marchMs);
+  const baseId = leaders.length > 0 ? leaders[0][0] : null;
+
+  if (baseId) {
+    const lp = document.getElementById('lp-' + baseId);
+    const bar = document.getElementById('lpbar-' + baseId);
+    const cd  = document.getElementById('lpcd-' + baseId);
+    if (lp) lp.classList.add('visible');
+    if (bar) bar.style.width = '100%';
+    if (cd)  { cd.textContent = formatMs(PRELAUNCH_SECS * 1000); cd.className = 'lp-countdown'; }
+  }
+
+  const endTime = Date.now() + PRELAUNCH_SECS * 1000;
+  const totalMs = PRELAUNCH_SECS * 1000;
+
+  function tick() {
+    const msLeft = endTime - Date.now();
+    const remaining = Math.ceil(msLeft / 1000);
+
+    // Big number
+    if (bigNum) {
+      bigNum.textContent = Math.max(0, remaining);
+      bigNum.style.color = remaining <= 3 ? 'var(--red)' : '#fff';
+    }
+
+    // Base leader row — drain bar and countdown in lockstep
+    if (baseId) {
+      const bar = document.getElementById('lpbar-' + baseId);
+      const cd  = document.getElementById('lpcd-' + baseId);
+      if (bar) bar.style.width = Math.max(0, (msLeft / totalMs) * 100) + '%';
+      if (cd)  {
+        cd.textContent = formatMs(Math.max(0, msLeft));
+        cd.className = 'lp-countdown' + (msLeft < 10000 ? ' urgent' : '');
+      }
+    }
+
+    if (remaining > 0) {
+      prelaunchRaf = requestAnimationFrame(tick);
+    } else {
+      if (bigCd) bigCd.style.display = 'none';
+      startLaunchSequence();
+    }
+  }
+  prelaunchRaf = requestAnimationFrame(tick);
 }
 
 function cancelPrelaunchCountdown() {
   if (prelaunchRaf) { cancelAnimationFrame(prelaunchRaf); prelaunchRaf = null; }
-  // Hide progress bars on all rows
   document.querySelectorAll('.leader-progress').forEach(lp => lp.classList.remove('visible'));
+  const bigCd = document.getElementById('big-countdown');
+  if (bigCd) bigCd.style.display = 'none';
+  const bigNum = document.getElementById('big-countdown-number');
+  if (bigNum) { bigNum.textContent = PRELAUNCH_SECS; bigNum.style.color = '#fff'; }
   log('Pre-launch countdown cancelled — a leader un-readied', 'important');
 }
 
@@ -1753,9 +1834,8 @@ function startLaunchSequence() {
   if (leaders.length === 0) return;
 
   const baseMarchMs = leaders[0][1].marchMs;
-  // BASE player launches in exactly PRELAUNCH_SECS from now
-  // All others launch after their additional delay on top of that
-  const baselaunchAt = Date.now() + (PRELAUNCH_SECS * 1000);
+  // Prelaunch already counted down — BASE player launches immediately (now)
+  const baselaunchAt = Date.now();
   const arrivalTime  = baselaunchAt + baseMarchMs;
 
   const sequence = leaders.map(([id, leader], idx) => ({
@@ -1775,10 +1855,11 @@ function startLaunchSequence() {
   // sequenceStartTime = now, so all bars start full and drain to their launchAt
   const sequenceStartTime = Date.now();
 
-  // Show progress bars on all rows
-  sequence.forEach(s => {
+  // Show progress bars on all rows — skip base leader (index 0) since prelaunch already started it
+  sequence.forEach((s, idx) => {
     const lp = document.getElementById('lp-' + s.id);
     if (lp) lp.classList.add('visible');
+    if (idx === 0) return; // base leader bar already running from prelaunch
     const bar = document.getElementById('lpbar-' + s.id);
     if (bar) bar.style.width = '100%';
     const cd = document.getElementById('lpcd-' + s.id);
@@ -1800,7 +1881,6 @@ function startLaunchSequence() {
 
       if (timeUntilLaunch > 0) {
         allDone = false;
-        // Each bar drains from 100%→0% over its own total window
         const totalWindow = s.launchAt - sequenceStartTime;
         const elapsed = now - sequenceStartTime;
         const pct = totalWindow > 0 ? Math.max(0, Math.min(100, (1 - elapsed / totalWindow) * 100)) : 0;
@@ -1830,18 +1910,31 @@ function startLaunchSequence() {
       }
     });
 
-    // Mark the row with the smallest positive timeUntilLaunch as next-up
+    // Mark next-up row
     const pending = sequence.filter(s => (s.launchAt - now) > 0);
     sequence.forEach(s => {
       const row = document.getElementById('lrow-' + s.id);
       if (row) row.classList.remove('next-up');
     });
+
+    // Drive big countdown to show time until the next pending launch
+    const bigCd  = document.getElementById('big-countdown');
+    const bigNum = document.getElementById('big-countdown-number');
     if (pending.length > 0) {
-      const nextId = pending.reduce((a, b) => (a.launchAt < b.launchAt ? a : b)).id;
-      const nextRow = document.getElementById('lrow-' + nextId);
-      if (nextRow && !nextRow.classList.contains('launched')) {
-        nextRow.classList.add('next-up');
+      const next = pending.reduce((a, b) => (a.launchAt < b.launchAt ? a : b));
+      const nextRow = document.getElementById('lrow-' + next.id);
+      if (nextRow && !nextRow.classList.contains('launched')) nextRow.classList.add('next-up');
+
+      const msToNext = next.launchAt - now;
+      const secsToNext = Math.ceil(msToNext / 1000);
+      if (bigCd) bigCd.style.display = 'block';
+      if (bigNum) {
+        bigNum.textContent = Math.max(0, secsToNext);
+        bigNum.style.color = secsToNext <= 3 ? 'var(--red)' : '#fff';
       }
+    } else {
+      // All launched — hide big countdown
+      if (bigCd) bigCd.style.display = 'none';
     }
 
     if (!allDone) {
@@ -1889,10 +1982,10 @@ function abortSequence() {
   });
   const abortBtn = document.getElementById('abort-btn');
   if (abortBtn) abortBtn.style.display = 'none';
-  const strip = document.getElementById('countdown-strip');
-  if (strip) strip.classList.remove('visible', 'arrival');
-
-  // Reset counter UI
+  const bigCd = document.getElementById('big-countdown');
+  if (bigCd) bigCd.style.display = 'none';
+  const bigNum = document.getElementById('big-countdown-number');
+  if (bigNum) { bigNum.textContent = PRELAUNCH_SECS; bigNum.style.color = '#fff'; }
   const hitStatus = document.getElementById('hit-status');
   if (hitStatus) hitStatus.classList.remove('visible');
   const hitBtn = document.getElementById('hit-btn');
@@ -1914,12 +2007,17 @@ function abortSequence() {
   if (room) {
     document.getElementById('room-input').value = room.toUpperCase();
   }
-  // Pre-generate a code if nothing set
   if (!room) generateCode();
 })();
 
-// Also keep march inputs synced live
-document.addEventListener('DOMContentLoaded', () => {
+// Initialise Firebase as soon as DOM + scripts are ready
+window.addEventListener('load', () => {
+  // Pre-load Firebase in the background so it's ready by the time someone joins
+  initFirebase().then(() => {
+    console.log('Firebase ready');
+  }).catch(e => console.warn('Firebase pre-load failed, will retry on join:', e.message));
+
+  // March input live sync
   ['my-march', 'my-march-counter'].forEach(inputId => {
     const mi = document.getElementById(inputId);
     if (mi) {
@@ -1936,7 +2034,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Enemy march time live sync
   const em = document.getElementById('enemy-march');
   if (em) {
     em.addEventListener('input', () => {
@@ -1948,7 +2045,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Init lobby defaults
   selectTeam('A');
 });
 </script>
