@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1097,66 +1098,88 @@ let roomState = {
 };
 
 // ============================================================
-// PERSISTENCE (localStorage as real-time sync via storage events)
-// We use localStorage + polling for cross-tab/cross-device sync.
-// For cross-device, we simulate with a lightweight BroadcastChannel
-// fallback to localStorage polling.
+// FIREBASE REALTIME DATABASE SYNC
 // ============================================================
-const POLL_MS = 500;
-let pollTimer = null;
-let bc = null;  // BroadcastChannel if available
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAxz-cg8YaqQ-vl5uBdCD4dRs9Y2uqsjSg",
+  authDomain: "ks-rallycoordinator.firebaseapp.com",
+  databaseURL: "https://ks-rallycoordinator-default-rtdb.firebaseio.com",
+  projectId: "ks-rallycoordinator",
+  storageBucket: "ks-rallycoordinator.firebasestorage.app",
+  messagingSenderId: "303019223315",
+  appId: "1:303019223315:web:604ee15bbe173dd68bd2e6"
+};
 
-function getStorageKey(room) { return 'ks_rally_' + room.toUpperCase(); }
+let firebaseApp = null;
+let firebaseDb = null;
+let roomRef = null;
+let firebaseListener = null;
+let pollTimer = null; // kept for fallback reference, unused when Firebase active
+
+function initFirebase() {
+  return new Promise((resolve) => {
+    if (firebaseDb) { resolve(); return; }
+    // Dynamically load Firebase SDK
+    const s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+      s2.onload = () => {
+        firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseDb = firebase.database();
+        resolve();
+      };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+}
+
+function getDbKey(room) { return 'rooms/' + room.toUpperCase(); }
 
 function saveRoomState() {
-  if (!roomCode) return;
-  const key = getStorageKey(roomCode);
-  const payload = JSON.stringify(roomState);
-  try {
-    localStorage.setItem(key, payload);
-  } catch(e) {}
-  // Broadcast to other tabs
-  if (bc) {
-    try { bc.postMessage({ type: 'state', room: roomCode, state: roomState }); } catch(e) {}
+  if (!roomCode || !firebaseDb) return;
+  firebaseDb.ref(getDbKey(roomCode)).set(roomState).catch(e => console.error('Firebase write error:', e));
+}
+
+function startFirebaseListener() {
+  if (!roomCode || !firebaseDb) return;
+  roomRef = firebaseDb.ref(getDbKey(roomCode));
+  firebaseListener = roomRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data || !data.leaders) return;
+
+    const prevHitTime = roomState.hitTime;
+    const prevMode = roomState.mode;
+    roomState = data;
+
+    // Sync room mode if it changed
+    if (roomState.mode && roomState.mode !== roomMode) {
+      roomMode = roomState.mode;
+      applyModeUI(roomMode);
+    }
+
+    renderAll();
+    renderCounterUI();
+
+    // Detect incoming hit signal for Team B
+    if (!prevHitTime && roomState.hitTime && roomMode === 'counter' && myTeam === 'B' && !sequenceActive) {
+      startCounterSequence();
+    }
+  });
+}
+
+function stopFirebaseListener() {
+  if (roomRef && firebaseListener) {
+    roomRef.off('value', firebaseListener);
+    firebaseListener = null;
+    roomRef = null;
   }
 }
 
-function loadRoomState() {
-  if (!roomCode) return;
-  const key = getStorageKey(roomCode);
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.leaders) {
-        roomState = parsed;
-        renderAll();
-      }
-    }
-  } catch(e) {}
-}
-
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(() => {
-    const prevHitTime = roomState.hitTime;
-    const prev = JSON.stringify(roomState);
-    loadRoomState();
-    const curr = JSON.stringify(roomState);
-    if (prev !== curr) {
-      renderAll();
-      renderCounterUI();
-      // Detect incoming hit signal for Team B
-      if (!prevHitTime && roomState.hitTime && roomMode === 'counter' && myTeam === 'B' && !sequenceActive) {
-        startCounterSequence();
-      }
-    }
-  }, POLL_MS);
-}
-
 function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
+  stopFirebaseListener();
 }
 
 // ============================================================
@@ -1260,69 +1283,57 @@ function joinRoom() {
   myId = uid();
   myTeam = lobbyTeam;
 
-  // Setup BroadcastChannel if supported
-  try {
-    bc = new BroadcastChannel('ks_rally_' + roomCode);
-    bc.onmessage = (e) => {
-      if (e.data && e.data.type === 'state' && e.data.room === roomCode) {
-        const incoming = e.data.state;
-        // Detect counter rally hit signal from another tab
-        const wasHit = roomState.hitTime;
-        roomState = incoming;
-        if (!wasHit && roomState.hitTime && roomMode === 'counter' && myTeam === 'B' && !sequenceActive) {
-          startCounterSequence();
-        }
-        renderAll();
-        renderCounterUI();
-      }
-    };
-  } catch(e) { bc = null; }
-
-  // Load existing state
-  loadRoomState();
-
-  // Set/respect room mode from existing state, or set from lobby choice
-  if (!roomState.mode) roomState.mode = lobbyMode;
-  roomMode = roomState.mode;
-
-  // Add myself
-  roomState.leaders[myId] = {
-    name: myName,
-    marchMs: null,
-    ready: false,
-    joinedAt: Date.now(),
-    team: myTeam
-  };
-  saveRoomState();
-  startPolling();
-
-  // Show session
+  // Show session screen immediately
   document.getElementById('lobby-screen').style.display = 'none';
   document.getElementById('session-screen').style.display = 'block';
   document.getElementById('room-display').textContent = roomCode;
-
-  // Share URL with room code embedded
   const shareUrl = window.location.href.split('?')[0] + '?room=' + encodeURIComponent(roomCode);
   document.getElementById('share-url-display').textContent = shareUrl;
+  document.getElementById('conn-status').textContent = 'Connecting…';
 
-  // Apply mode UI
-  applyModeUI(roomMode);
+  initFirebase().then(() => {
+    // Read existing room state first to get the mode
+    firebaseDb.ref(getDbKey(roomCode)).once('value').then(snapshot => {
+      const existing = snapshot.val();
+      if (existing && existing.leaders) {
+        roomState = existing;
+      }
+      if (!roomState.mode) roomState.mode = lobbyMode;
+      roomMode = roomState.mode;
 
-  log(`Joined room ${roomCode} as ${myName}${roomMode === 'counter' ? ' [Team ' + myTeam + ']' : ''}`, 'important');
-  renderAll();
-  renderCounterUI();
+      // Add myself
+      roomState.leaders[myId] = {
+        name: myName,
+        marchMs: null,
+        ready: false,
+        joinedAt: Date.now(),
+        team: myTeam
+      };
 
-  // Handle page unload
+      saveRoomState();
+      startFirebaseListener();
+      applyModeUI(roomMode);
+      document.getElementById('conn-status').textContent = 'Connected';
+      log(`Joined room ${roomCode} as ${myName}${roomMode === 'counter' ? ' [Team ' + myTeam + ']' : ''}`, 'important');
+      renderAll();
+      renderCounterUI();
+    });
+  }).catch(err => {
+    document.getElementById('conn-status').textContent = 'Connection error';
+    log('Firebase connection failed: ' + err.message, 'important');
+  });
+
   window.addEventListener('beforeunload', leaveRoom);
 }
 
 function leaveRoom() {
   if (!roomCode || !myId) return;
-  delete roomState.leaders[myId];
-  saveRoomState();
-  stopPolling();
+  // Remove just my entry from Firebase
+  if (firebaseDb) {
+    firebaseDb.ref(getDbKey(roomCode) + '/leaders/' + myId).remove().catch(()=>{});
+  }
+  stopFirebaseListener();
   abortSequence();
-  if (bc) { bc.close(); bc = null; }
   roomCode = ''; myId = ''; isReady = false;
   document.getElementById('lobby-screen').style.display = '';
   document.getElementById('session-screen').style.display = 'none';
