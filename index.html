@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -722,6 +721,167 @@ body::after {
 .cs-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .cs-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width .1s linear; }
 
+/* ── MODE SWITCHER ── */
+.mode-switcher {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1px solid var(--border2);
+}
+.mode-btn {
+  flex: 1;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all .2s;
+  border-right: 1px solid var(--border2);
+}
+.mode-btn:last-child { border-right: none; }
+.mode-btn.active { background: var(--gold); color: #000; }
+.mode-btn:not(.active):hover { background: var(--gold-glow); color: var(--gold); }
+
+/* ── TEAM SELECTOR ── */
+.team-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.team-btn {
+  flex: 1;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border: 2px solid var(--border2);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 10px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.team-btn.team-a.selected { border-color: var(--blue); color: var(--blue); background: rgba(74,143,232,0.1); }
+.team-btn.team-b.selected { border-color: var(--red); color: var(--red); background: rgba(232,64,64,0.1); }
+.team-btn:not(.selected):hover { border-color: var(--border-primary); color: var(--text); }
+
+/* ── TEAM BADGES ── */
+.team-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .12em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.team-badge.a { background: rgba(74,143,232,0.15); color: var(--blue); border: 1px solid rgba(74,143,232,0.3); }
+.team-badge.b { background: rgba(232,64,64,0.15); color: var(--red); border: 1px solid rgba(232,64,64,0.3); }
+
+/* ── COUNTER RALLY PANEL ── */
+.counter-panel { }
+
+.hit-btn {
+  width: 100%;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  border: 2px solid var(--red-dim);
+  background: rgba(232,64,64,0.08);
+  color: var(--red);
+  padding: 20px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.hit-btn:hover { background: rgba(232,64,64,0.18); border-color: var(--red); box-shadow: 0 0 24px rgba(232,64,64,0.2); }
+.hit-btn:active { transform: scale(0.98); }
+.hit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.standdown-btn {
+  width: 100%;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.standdown-btn:hover { border-color: var(--text-dim); color: var(--text); }
+.standdown-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.enemy-march-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  padding: 0 14px;
+  margin-bottom: 10px;
+}
+.enemy-march-row label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.enemy-march-input {
+  background: transparent;
+  border: none;
+  color: var(--red);
+  font-family: var(--mono);
+  font-size: 18px;
+  flex: 1;
+  outline: none;
+  text-align: center;
+  padding: 10px 0;
+}
+.enemy-march-input::placeholder { color: var(--text-muted); font-size: 14px; }
+
+.hit-status {
+  display: none;
+  background: rgba(232,64,64,0.1);
+  border: 1px solid var(--red);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--red);
+  letter-spacing: .06em;
+  animation: banner-in .3s ease;
+}
+.hit-status.visible { display: block; }
+
+/* ── TEAM SECTION HEADERS IN LEADER LIST ── */
+.team-header {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 2px 4px;
+  margin-top: 4px;
+}
+.team-header:first-child { margin-top: 0; }
+.team-header.a { color: var(--blue); }
+.team-header.b { color: var(--red); }
+
 /* scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -742,6 +902,13 @@ body::after {
   <div id="lobby-screen">
     <div class="card">
       <div class="card-title">&#x25A0; Join or Create a Room</div>
+
+      <!-- Mode selector -->
+      <div class="mode-switcher">
+        <button class="mode-btn active" id="lobby-mode-sync" onclick="selectLobbyMode('sync')">&#x25B6;&#x25B6; Synchronized</button>
+        <button class="mode-btn" id="lobby-mode-counter" onclick="selectLobbyMode('counter')">&#x21C4; Counter Rally</button>
+      </div>
+
       <div class="room-row">
         <div class="room-input-wrap">
           <input class="room-input" id="room-input" type="text" placeholder="Enter room code (e.g. VIPER)" maxlength="12" autocomplete="off" spellcheck="false">
@@ -752,8 +919,19 @@ body::after {
         <input class="name-input" id="name-input" type="text" placeholder="Your leader name (e.g. RedDragon)" maxlength="16" autocomplete="off">
         <button class="btn primary" onclick="joinRoom()">Enter Room</button>
       </div>
+
+      <!-- Team selector (counter rally only) -->
+      <div id="team-selector" style="display:none;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--text-dim);margin-top:12px;margin-bottom:6px;">SELECT YOUR TEAM</div>
+        <div class="team-row">
+          <button class="team-btn team-a" id="team-a-btn" onclick="selectTeam('A')">&#x1F6E1; Team A — Defenders</button>
+          <button class="team-btn team-b" id="team-b-btn" onclick="selectTeam('B')">&#x26A1; Team B — Counter Force</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;font-family:var(--mono);">Team A holds the castle. Team B launches the counter rally when A is hit.</div>
+      </div>
+
       <div class="mt-8" style="font-size:12px;color:var(--text-muted);">
-        Share the room code with your rally leaders — everyone joins the same code. Works across devices on the same network or internet.
+        Share the room code with your rally leaders — everyone joins the same code.
       </div>
     </div>
     <div class="card" style="--card-accent: var(--text-muted);">
@@ -800,7 +978,13 @@ body::after {
       <button class="btn sm" onclick="copyShareUrl()">Copy Link</button>
     </div>
 
-    <!-- Combined countdown strip (pre-launch → arrival) -->
+    <!-- Mode switcher -->
+    <div class="mode-switcher" style="margin-bottom:12px;">
+      <button class="mode-btn" id="mode-sync-btn" onclick="switchMode('sync')">&#x25B6;&#x25B6; Synchronized</button>
+      <button class="mode-btn" id="mode-counter-btn" onclick="switchMode('counter')">&#x21C4; Counter Rally</button>
+    </div>
+
+    <!-- Combined countdown strip -->
     <div id="countdown-strip" class="countdown-strip">
       <div class="cs-number" id="cs-number">5</div>
       <div class="cs-body">
@@ -809,7 +993,10 @@ body::after {
       </div>
     </div>
 
-    <!-- My controls -->
+    <!-- Hit status banner (counter mode) -->
+    <div id="hit-status" class="hit-status">&#x26A1; CASTLE HIT — Team B counter sequence launched!</div>
+
+    <!-- My controls (sync mode) -->
     <div class="card" id="my-controls-card">
       <div class="card-title">&#x25A0; My Station</div>
       <div class="my-controls">
@@ -824,10 +1011,47 @@ body::after {
       </div>
     </div>
 
+    <!-- Counter rally controls -->
+    <div class="card" id="counter-controls-card" style="display:none;">
+      <div class="card-title">&#x25A0; Counter Rally Controls</div>
+
+      <!-- Team B march input + ready (shown to Team B members) -->
+      <div id="teamb-station" style="display:none;">
+        <div class="my-controls" style="margin-bottom:10px;">
+          <div class="march-input-wrap">
+            <label>MY MARCH TIME</label>
+            <input class="march-input" id="my-march-counter" type="text" placeholder="0:00" maxlength="5">
+          </div>
+          <button class="ready-btn" id="ready-btn-counter" onclick="toggleReady()">Ready</button>
+        </div>
+      </div>
+
+      <!-- Enemy march time (shown to everyone) -->
+      <div class="enemy-march-row">
+        <label>ENEMY MARCH TIME</label>
+        <input class="enemy-march-input" id="enemy-march" type="text" placeholder="0:00" maxlength="5">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">min:sec</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:12px;">
+        Enter the enemy's march time — Team B will launch to arrive just after they do.
+      </div>
+
+      <!-- Hit / Stand Down (shown to Team A only) -->
+      <div id="teama-controls" style="display:none;">
+        <button class="hit-btn" id="hit-btn" onclick="castleHit()">&#x26A1; CASTLE HIT — Launch Counter Rally</button>
+        <button class="standdown-btn" id="standdown-btn" onclick="standDown()" disabled>&#x25FC; Stand Down — Cancel Counter</button>
+      </div>
+
+      <!-- Team B status -->
+      <div id="teamb-status" style="display:none;font-size:12px;color:var(--text-dim);font-family:var(--mono);text-align:center;padding:8px 0;">
+        Waiting for Team A to signal castle hit…
+      </div>
+    </div>
+
     <!-- Unified leaders + launch -->
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>&#x25A0; Rally Leaders</span>
+        <span id="leaders-card-title">&#x25A0; Rally Leaders</span>
         <div style="display:flex;align-items:center;gap:12px;">
           <span id="ready-count-label" style="color:var(--text-dim);font-weight:400;letter-spacing:.05em;font-family:var(--sans);font-size:12px;">0 / 0 ready</span>
           <button class="btn danger sm" id="abort-btn" onclick="abortSequence()" style="display:none;">&#x25FC; Abort</button>
@@ -854,15 +1078,22 @@ body::after {
 // ============================================================
 let myId = null;
 let myName = '';
+let myTeam = 'A';       // 'A' or 'B' — counter rally mode only
 let roomCode = '';
 let isReady = false;
 let sequenceActive = false;
 let sequenceTimer = null;
 let castleTimerInterval = null;
+let roomMode = 'sync';  // 'sync' or 'counter'
+let lobbyMode = 'sync';
+let lobbyTeam = 'A';
 
 // Room state (shared via sync)
 let roomState = {
-  leaders: {}   // { id: { name, marchMs, ready, joinedAt } }
+  leaders: {},   // { id: { name, marchMs, ready, joinedAt, team } }
+  mode: 'sync',  // 'sync' or 'counter'
+  hitTime: null, // timestamp of castle hit (counter mode)
+  enemyMarchMs: null
 };
 
 // ============================================================
@@ -908,10 +1139,18 @@ function loadRoomState() {
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(() => {
+    const prevHitTime = roomState.hitTime;
     const prev = JSON.stringify(roomState);
     loadRoomState();
     const curr = JSON.stringify(roomState);
-    if (prev !== curr) renderAll();
+    if (prev !== curr) {
+      renderAll();
+      renderCounterUI();
+      // Detect incoming hit signal for Team B
+      if (!prevHitTime && roomState.hitTime && roomMode === 'counter' && myTeam === 'B' && !sequenceActive) {
+        startCounterSequence();
+      }
+    }
   }, POLL_MS);
 }
 
@@ -994,6 +1233,19 @@ function copyShareUrl() {
   });
 }
 
+function selectLobbyMode(mode) {
+  lobbyMode = mode;
+  document.getElementById('lobby-mode-sync').classList.toggle('active', mode === 'sync');
+  document.getElementById('lobby-mode-counter').classList.toggle('active', mode === 'counter');
+  document.getElementById('team-selector').style.display = mode === 'counter' ? 'block' : 'none';
+}
+
+function selectTeam(team) {
+  lobbyTeam = team;
+  document.getElementById('team-a-btn').classList.toggle('selected', team === 'A');
+  document.getElementById('team-b-btn').classList.toggle('selected', team === 'B');
+}
+
 // ============================================================
 // ROOM JOIN / LEAVE
 // ============================================================
@@ -1001,10 +1253,12 @@ function joinRoom() {
   const code = document.getElementById('room-input').value.trim().toUpperCase();
   const name = document.getElementById('name-input').value.trim() || 'Leader';
   if (!code) { showToast('Enter a room code first'); return; }
+  if (lobbyMode === 'counter' && !lobbyTeam) { showToast('Select Team A or Team B'); return; }
 
   roomCode = code;
   myName = name;
   myId = uid();
+  myTeam = lobbyTeam;
 
   // Setup BroadcastChannel if supported
   try {
@@ -1012,8 +1266,14 @@ function joinRoom() {
     bc.onmessage = (e) => {
       if (e.data && e.data.type === 'state' && e.data.room === roomCode) {
         const incoming = e.data.state;
+        // Detect counter rally hit signal from another tab
+        const wasHit = roomState.hitTime;
         roomState = incoming;
+        if (!wasHit && roomState.hitTime && roomMode === 'counter' && myTeam === 'B' && !sequenceActive) {
+          startCounterSequence();
+        }
         renderAll();
+        renderCounterUI();
       }
     };
   } catch(e) { bc = null; }
@@ -1021,12 +1281,17 @@ function joinRoom() {
   // Load existing state
   loadRoomState();
 
+  // Set/respect room mode from existing state, or set from lobby choice
+  if (!roomState.mode) roomState.mode = lobbyMode;
+  roomMode = roomState.mode;
+
   // Add myself
   roomState.leaders[myId] = {
     name: myName,
     marchMs: null,
     ready: false,
-    joinedAt: Date.now()
+    joinedAt: Date.now(),
+    team: myTeam
   };
   saveRoomState();
   startPolling();
@@ -1040,8 +1305,12 @@ function joinRoom() {
   const shareUrl = window.location.href.split('?')[0] + '?room=' + encodeURIComponent(roomCode);
   document.getElementById('share-url-display').textContent = shareUrl;
 
-  log(`Joined room ${roomCode} as ${myName}`, 'important');
+  // Apply mode UI
+  applyModeUI(roomMode);
+
+  log(`Joined room ${roomCode} as ${myName}${roomMode === 'counter' ? ' [Team ' + myTeam + ']' : ''}`, 'important');
   renderAll();
+  renderCounterUI();
 
   // Handle page unload
   window.addEventListener('beforeunload', leaveRoom);
@@ -1061,17 +1330,241 @@ function leaveRoom() {
 }
 
 // ============================================================
+// MODE SWITCHING
+// ============================================================
+function applyModeUI(mode) {
+  roomMode = mode;
+  document.getElementById('mode-sync-btn').classList.toggle('active', mode === 'sync');
+  document.getElementById('mode-counter-btn').classList.toggle('active', mode === 'counter');
+  document.getElementById('my-controls-card').style.display = mode === 'sync' ? 'block' : 'none';
+  document.getElementById('counter-controls-card').style.display = mode === 'counter' ? 'block' : 'none';
+
+  const title = document.getElementById('leaders-card-title');
+  if (title) title.textContent = mode === 'counter' ? '&#x25A0; Teams' : '&#x25A0; Rally Leaders';
+
+  if (mode === 'counter') renderCounterUI();
+}
+
+function switchMode(mode) {
+  if (!myId) return;
+  roomState.mode = mode;
+  saveRoomState();
+  applyModeUI(mode);
+  renderAll();
+}
+
+function renderCounterUI() {
+  if (roomMode !== 'counter') return;
+  const isTeamA = myTeam === 'A';
+  const isTeamB = myTeam === 'B';
+
+  document.getElementById('teama-controls').style.display = isTeamA ? 'block' : 'none';
+  document.getElementById('teamb-status').style.display = isTeamB ? 'block' : 'none';
+  document.getElementById('teamb-station').style.display = isTeamB ? 'block' : 'none';
+
+  const hitStatus = document.getElementById('hit-status');
+  if (roomState.hitTime) {
+    hitStatus.classList.add('visible');
+    document.getElementById('standdown-btn').disabled = false;
+    document.getElementById('hit-btn').disabled = true;
+  } else {
+    hitStatus.classList.remove('visible');
+    document.getElementById('standdown-btn') && (document.getElementById('standdown-btn').disabled = true);
+    document.getElementById('hit-btn') && (document.getElementById('hit-btn').disabled = false);
+  }
+
+  // Sync enemy march into state if entered
+  const enemyInput = document.getElementById('enemy-march');
+  if (enemyInput && roomState.enemyMarchMs) {
+    const formatted = formatMarch(roomState.enemyMarchMs);
+    if (enemyInput.value !== formatted) enemyInput.value = formatted;
+  }
+}
+
+// ============================================================
+// COUNTER RALLY — CASTLE HIT / STAND DOWN
+// ============================================================
+function castleHit() {
+  if (!myId || myTeam !== 'A') return;
+  const enemyStr = document.getElementById('enemy-march').value;
+  const enemyMs = parseMarch(enemyStr);
+  if (!enemyMs) { showToast('Enter the enemy march time first'); document.getElementById('enemy-march').focus(); return; }
+
+  roomState.hitTime = Date.now();
+  roomState.enemyMarchMs = enemyMs;
+  saveRoomState();
+
+  log('CASTLE HIT SIGNALLED — counter sequence firing for Team B', 'success');
+  showToast('⚡ Hit signal sent — Team B launching!', 3000);
+
+  document.getElementById('hit-btn').disabled = true;
+  document.getElementById('standdown-btn').disabled = false;
+  document.getElementById('hit-status').classList.add('visible');
+
+  // If I'm somehow also Team B (shouldn't happen, but safety)
+  if (myTeam === 'B' && !sequenceActive) startCounterSequence();
+}
+
+function standDown() {
+  if (!myId || myTeam !== 'A') return;
+  roomState.hitTime = null;
+  saveRoomState();
+  abortSequence();
+  document.getElementById('hit-btn').disabled = false;
+  document.getElementById('standdown-btn').disabled = true;
+  document.getElementById('hit-status').classList.remove('visible');
+  showToast('Stand Down — counter sequence cancelled', 2500);
+  log('Stand Down — counter sequence cancelled by Team A', 'important');
+}
+
+// ============================================================
+// COUNTER SEQUENCE (Team B staggered launch after castle hit)
+// ============================================================
+function startCounterSequence() {
+  if (sequenceActive) return;
+  sequenceActive = true;
+
+  const enemyMarchMs = roomState.enemyMarchMs || 0;
+  const hitTime = roomState.hitTime;
+
+  // Team B launches so they arrive AFTER the enemy
+  // Enemy arrives at: hitTime + enemyMarchMs
+  // Add a small buffer (5s) so Team B arrives just after enemy
+  const BUFFER_MS = 5000;
+  const enemyArrival = hitTime + enemyMarchMs + BUFFER_MS;
+
+  // Sort Team B leaders by march time DESC
+  const teamB = Object.entries(roomState.leaders)
+    .filter(([,l]) => l.team === 'B' && l.marchMs)
+    .sort((a,b) => b[1].marchMs - a[1].marchMs);
+
+  if (teamB.length === 0) { sequenceActive = false; return; }
+
+  const baseMarchMs = teamB[0][1].marchMs;
+  // BASE Team B player launches so they arrive at enemyArrival
+  const baselaunchAt = enemyArrival - baseMarchMs;
+
+  const sequence = teamB.map(([id, leader], idx) => ({
+    id,
+    name: leader.name,
+    marchMs: leader.marchMs,
+    isMe: id === myId,
+    launchAt: baselaunchAt + (baseMarchMs - leader.marchMs),
+    delay: baseMarchMs - leader.marchMs,
+    order: idx + 1
+  }));
+
+  const abortBtn = document.getElementById('abort-btn');
+  if (abortBtn) abortBtn.style.display = '';
+
+  const sequenceStartTime = Date.now();
+
+  // Show bars on Team B rows only
+  sequence.forEach(s => {
+    const lp = document.getElementById('lp-' + s.id);
+    if (lp) lp.classList.add('visible');
+    const bar = document.getElementById('lpbar-' + s.id);
+    if (bar) bar.style.width = '100%';
+    const cd = document.getElementById('lpcd-' + s.id);
+    const msUntil = s.launchAt - Date.now();
+    if (cd) { cd.textContent = msUntil > 0 ? formatMs(msUntil) : '0:00'; cd.className = 'lp-countdown'; }
+  });
+
+  log(`Counter sequence started — Team B arrives ${BUFFER_MS/1000}s after enemy`, 'success');
+  showToast('⚡ Counter launch sequence active!', 3000);
+
+  function tick() {
+    const now = Date.now();
+    let allDone = true;
+
+    sequence.forEach(s => {
+      const timeUntilLaunch = s.launchAt - now;
+      const row = document.getElementById('lrow-' + s.id);
+      const cd  = document.getElementById('lpcd-' + s.id);
+      const bar = document.getElementById('lpbar-' + s.id);
+      if (!row || !cd || !bar) return;
+
+      if (timeUntilLaunch > 0) {
+        allDone = false;
+        const totalWindow = s.launchAt - sequenceStartTime;
+        const elapsed = now - sequenceStartTime;
+        const pct = totalWindow > 0 ? Math.max(0, Math.min(100, (1 - elapsed / totalWindow) * 100)) : 0;
+        bar.style.width = pct + '%';
+        cd.textContent = formatMs(timeUntilLaunch);
+        cd.className = 'lp-countdown' + (timeUntilLaunch < 10000 ? ' urgent' : '');
+
+        if (timeUntilLaunch < 3000 && !row.classList.contains('launching')) {
+          row.classList.add('launching');
+          if (s.isMe) {
+            showToast('▶ LAUNCH YOUR RALLY NOW!', 4000);
+            log(`>>> ${s.name}: LAUNCH NOW <<<`, 'success');
+          } else {
+            log(`>>> ${s.name}: launching now`, '');
+          }
+        }
+      } else {
+        if (!row.classList.contains('launched')) {
+          row.classList.remove('launching', 'ready', 'me', 'next-up');
+          row.classList.add('launched');
+          bar.style.width = '100%';
+          cd.className = 'lp-countdown done';
+          cd.textContent = 'LAUNCHED ✓';
+          const statusEl = row.querySelector('.leader-status-icon');
+          if (statusEl) statusEl.innerHTML = '<span class="status-launched">LAUNCHED ✓</span>';
+        }
+      }
+    });
+
+    // Next-up highlight
+    const pending = sequence.filter(s => (s.launchAt - now) > 0);
+    sequence.forEach(s => { const r = document.getElementById('lrow-' + s.id); if (r) r.classList.remove('next-up'); });
+    if (pending.length > 0) {
+      const nextId = pending.reduce((a,b) => a.launchAt < b.launchAt ? a : b).id;
+      const nextRow = document.getElementById('lrow-' + nextId);
+      if (nextRow && !nextRow.classList.contains('launched')) nextRow.classList.add('next-up');
+    }
+
+    if (!allDone) {
+      sequenceTimer = requestAnimationFrame(tick);
+    } else {
+      sequenceActive = false;
+      log('Counter sequence complete.', 'success');
+      setTimeout(() => {
+        roomState.hitTime = null;
+        saveRoomState();
+        const abortBtn = document.getElementById('abort-btn');
+        if (abortBtn) abortBtn.style.display = 'none';
+        document.getElementById('hit-status').classList.remove('visible');
+        document.getElementById('hit-btn') && (document.getElementById('hit-btn').disabled = false);
+        document.getElementById('standdown-btn') && (document.getElementById('standdown-btn').disabled = true);
+        allReadyAcked = false;
+        log('Counter reset — ready for next rally', 'important');
+        renderAll();
+        renderCounterUI();
+      }, 3000);
+    }
+  }
+
+  sequenceTimer = requestAnimationFrame(tick);
+}
+
+// ============================================================
 // READY TOGGLE
 // ============================================================
 function toggleReady() {
   if (!myId || sequenceActive) return;
 
-  const marchStr = document.getElementById('my-march').value;
+  // In counter mode, only Team B marks ready; Team A doesn't need to
+  const marchInput = roomMode === 'counter'
+    ? document.getElementById('my-march-counter')
+    : document.getElementById('my-march');
+
+  const marchStr = marchInput ? marchInput.value : '';
   const marchMs = parseMarch(marchStr);
 
   if (!isReady && !marchMs) {
     showToast('Enter your march time first (e.g. 3:45)');
-    document.getElementById('my-march').focus();
+    if (marchInput) marchInput.focus();
     return;
   }
 
@@ -1080,9 +1573,11 @@ function toggleReady() {
   roomState.leaders[myId].marchMs = marchMs;
   saveRoomState();
 
-  const btn = document.getElementById('ready-btn');
-  btn.textContent = isReady ? '✓ Ready' : 'Ready';
-  btn.classList.toggle('is-ready', isReady);
+  // Update whichever ready button is visible
+  ['ready-btn', 'ready-btn-counter'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = isReady ? '✓ Ready' : 'Ready'; btn.classList.toggle('is-ready', isReady); }
+  });
 
   log(isReady ? `${myName} is READY (march: ${formatMarch(marchMs)})` : `${myName} un-readied`, isReady ? 'important' : '');
   renderAll();
@@ -1099,57 +1594,87 @@ function renderAll() {
 }
 
 function renderLeaders() {
-  if (sequenceActive) return; // don't clobber live sequence rows
+  if (sequenceActive) return;
   const grid = document.getElementById('leaders-grid');
-  const leaders = Object.entries(roomState.leaders).sort((a, b) => {
-    const aMarch = a[1].marchMs || 0;
-    const bMarch = b[1].marchMs || 0;
-    if (bMarch !== aMarch) return bMarch - aMarch; // longest march first
-    return a[1].joinedAt - b[1].joinedAt;          // fallback: join order
-  });
 
-  grid.innerHTML = '';
+  if (roomMode === 'counter') {
+    // Group by team
+    const teamA = Object.entries(roomState.leaders).filter(([,l]) => l.team === 'A').sort((a,b) => (b[1].marchMs||0)-(a[1].marchMs||0));
+    const teamB = Object.entries(roomState.leaders).filter(([,l]) => l.team === 'B').sort((a,b) => (b[1].marchMs||0)-(a[1].marchMs||0));
 
-  leaders.forEach(([id, leader]) => {
-    const isMe = id === myId;
-    const marchDisp = leader.marchMs ? formatMarch(leader.marchMs) : '—';
-    const initials = leader.name.slice(0,2).toUpperCase();
+    grid.innerHTML = '';
 
-    const row = document.createElement('div');
-    row.className = 'leader-row' + (leader.ready ? ' ready' : '') + (isMe ? ' me' : '');
-    row.id = 'lrow-' + id;
-
-    row.innerHTML = `
-      <div class="leader-top">
-        <div class="leader-avatar">${initials}</div>
-        <div class="leader-name">${escHtml(leader.name)}</div>
-        <div class="leader-march">March: <span>${marchDisp}</span></div>
-        ${isMe ? '<div class="me-tag">YOU</div>' : ''}
-        <div class="leader-status-icon">
-          ${leader.ready ? '<span class="status-ready">✓</span>' : '<span class="status-wait">◌</span>'}
-        </div>
-      </div>
-      <div class="leader-progress" id="lp-${id}">
-        <div class="lp-bar-wrap"><div class="lp-bar-fill" id="lpbar-${id}" style="width:0%"></div></div>
-        <div class="lp-countdown" id="lpcd-${id}">—</div>
-      </div>
-    `;
-    grid.appendChild(row);
-  });
-
-  if (leaders.length < 5) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-slot';
-    empty.textContent = '+ awaiting leader';
-    grid.appendChild(empty);
+    if (teamA.length > 0) {
+      const hdr = document.createElement('div');
+      hdr.className = 'team-header a';
+      hdr.textContent = '▸ Team A — Defenders';
+      grid.appendChild(hdr);
+      teamA.forEach(([id, leader]) => grid.appendChild(buildLeaderRow(id, leader)));
+    }
+    if (teamB.length > 0) {
+      const hdr = document.createElement('div');
+      hdr.className = 'team-header b';
+      hdr.textContent = '▸ Team B — Counter Force';
+      grid.appendChild(hdr);
+      teamB.forEach(([id, leader]) => grid.appendChild(buildLeaderRow(id, leader)));
+    }
+  } else {
+    // Sync mode — flat list sorted by march time
+    const leaders = Object.entries(roomState.leaders).sort((a, b) => {
+      const aMarch = a[1].marchMs || 0;
+      const bMarch = b[1].marchMs || 0;
+      if (bMarch !== aMarch) return bMarch - aMarch;
+      return a[1].joinedAt - b[1].joinedAt;
+    });
+    grid.innerHTML = '';
+    leaders.forEach(([id, leader]) => grid.appendChild(buildLeaderRow(id, leader)));
+    if (leaders.length < 5) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-slot';
+      empty.textContent = '+ awaiting leader';
+      grid.appendChild(empty);
+    }
   }
 }
 
+function buildLeaderRow(id, leader) {
+  const isMe = id === myId;
+  const marchDisp = leader.marchMs ? formatMarch(leader.marchMs) : '—';
+  const initials = leader.name.slice(0,2).toUpperCase();
+  const teamBadge = roomMode === 'counter' && leader.team
+    ? `<span class="team-badge ${leader.team.toLowerCase()}">${leader.team}</span>`
+    : '';
+
+  const row = document.createElement('div');
+  row.className = 'leader-row' + (leader.ready ? ' ready' : '') + (isMe ? ' me' : '');
+  row.id = 'lrow-' + id;
+
+  row.innerHTML = `
+    <div class="leader-top">
+      <div class="leader-avatar">${initials}</div>
+      <div class="leader-name">${escHtml(leader.name)}</div>
+      ${teamBadge}
+      <div class="leader-march">March: <span>${marchDisp}</span></div>
+      ${isMe ? '<div class="me-tag">YOU</div>' : ''}
+      <div class="leader-status-icon">
+        ${leader.ready ? '<span class="status-ready">✓</span>' : '<span class="status-wait">◌</span>'}
+      </div>
+    </div>
+    <div class="leader-progress" id="lp-${id}">
+      <div class="lp-bar-wrap"><div class="lp-bar-fill" id="lpbar-${id}" style="width:0%"></div></div>
+      <div class="lp-countdown" id="lpcd-${id}">—</div>
+    </div>
+  `;
+  return row;
+}
+
 function updateReadyCount() {
-  const leaders = Object.values(roomState.leaders);
-  const total = leaders.length;
-  const ready = leaders.filter(l => l.ready).length;
-  document.getElementById('ready-count-label').textContent = `${ready} / ${total} ready`;
+  const all = Object.values(roomState.leaders);
+  const relevant = roomMode === 'counter' ? all.filter(l => l.team === 'B') : all;
+  const total = relevant.length;
+  const ready = relevant.filter(l => l.ready).length;
+  const label = roomMode === 'counter' ? `Team B: ${ready} / ${total} ready` : `${ready} / ${total} ready`;
+  document.getElementById('ready-count-label').textContent = label;
 }
 
 function escHtml(str) {
@@ -1166,6 +1691,8 @@ const PRELAUNCH_SECS = 5;
 
 function checkAllReady() {
   if (sequenceActive) return;
+  if (roomMode === 'counter') return; // counter mode is triggered by castleHit, not ready check
+
   const leaders = Object.values(roomState.leaders);
   if (leaders.length < 1) return;
 
@@ -1174,7 +1701,7 @@ function checkAllReady() {
   if (allReady) {
     if (!allReadyAcked) {
       allReadyAcked = true;
-      log('ALL LEADERS READY — starting pre-launch countdown', 'success');
+      log('ALL LEADERS READY — starting launch sequence', 'success');
       startPrelaunchCountdown();
     }
   } else {
@@ -1338,19 +1865,31 @@ function abortSequence() {
 
   if (myId && roomState.leaders[myId]) {
     Object.keys(roomState.leaders).forEach(id => { roomState.leaders[id].ready = false; });
+    if (roomMode === 'counter') roomState.hitTime = null;
     saveRoomState();
   }
 
   isReady = false;
-  const btn = document.getElementById('ready-btn');
-  if (btn) { btn.textContent = 'Ready'; btn.classList.remove('is-ready'); }
+  ['ready-btn','ready-btn-counter'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = 'Ready'; btn.classList.remove('is-ready'); }
+  });
   const abortBtn = document.getElementById('abort-btn');
   if (abortBtn) abortBtn.style.display = 'none';
   const strip = document.getElementById('countdown-strip');
   if (strip) strip.classList.remove('visible', 'arrival');
 
+  // Reset counter UI
+  const hitStatus = document.getElementById('hit-status');
+  if (hitStatus) hitStatus.classList.remove('visible');
+  const hitBtn = document.getElementById('hit-btn');
+  if (hitBtn) hitBtn.disabled = false;
+  const sdBtn = document.getElementById('standdown-btn');
+  if (sdBtn) sdBtn.disabled = true;
+
   log('Sequence aborted — all leaders reset to NOT READY', 'important');
   renderAll();
+  renderCounterUI();
 }
 
 // ============================================================
@@ -1366,21 +1905,38 @@ function abortSequence() {
   if (!room) generateCode();
 })();
 
-// Also keep march input synced live for my leader slot
+// Also keep march inputs synced live
 document.addEventListener('DOMContentLoaded', () => {
-  const mi = document.getElementById('my-march');
-  if (mi) {
-    mi.addEventListener('input', () => {
-      if (isReady && myId && roomState.leaders[myId]) {
-        const ms = parseMarch(mi.value);
-        if (ms) {
-          roomState.leaders[myId].marchMs = ms;
-          saveRoomState();
-          renderAll();
+  ['my-march', 'my-march-counter'].forEach(inputId => {
+    const mi = document.getElementById(inputId);
+    if (mi) {
+      mi.addEventListener('input', () => {
+        if (isReady && myId && roomState.leaders[myId]) {
+          const ms = parseMarch(mi.value);
+          if (ms) {
+            roomState.leaders[myId].marchMs = ms;
+            saveRoomState();
+            renderAll();
+          }
         }
+      });
+    }
+  });
+
+  // Enemy march time live sync
+  const em = document.getElementById('enemy-march');
+  if (em) {
+    em.addEventListener('input', () => {
+      const ms = parseMarch(em.value);
+      if (ms && roomState) {
+        roomState.enemyMarchMs = ms;
+        saveRoomState();
       }
     });
   }
+
+  // Init lobby defaults
+  selectTeam('A');
 });
 </script>
 </body>
