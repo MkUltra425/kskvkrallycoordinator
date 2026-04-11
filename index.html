@@ -1334,7 +1334,9 @@ function leaveRoom() {
   }
   stopFirebaseListener();
   abortSequence();
-  roomCode = ''; myId = ''; isReady = false;
+  // Reset all local state so nothing carries over to the next room
+  roomState = { leaders: {}, mode: 'sync', hitTime: null, enemyMarchMs: null };
+  roomCode = ''; myId = ''; isReady = false; roomMode = 'sync';
   document.getElementById('lobby-screen').style.display = '';
   document.getElementById('session-screen').style.display = 'none';
   window.removeEventListener('beforeunload', leaveRoom);
@@ -1351,7 +1353,7 @@ function applyModeUI(mode) {
   document.getElementById('counter-controls-card').style.display = mode === 'counter' ? 'block' : 'none';
 
   const title = document.getElementById('leaders-card-title');
-  if (title) title.textContent = mode === 'counter' ? '&#x25A0; Teams' : '&#x25A0; Rally Leaders';
+  if (title) title.textContent = mode === 'counter' ? '◼ Teams' : '◼ Rally Leaders';
 
   if (mode === 'counter') renderCounterUI();
 }
